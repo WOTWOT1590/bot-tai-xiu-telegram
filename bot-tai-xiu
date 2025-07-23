@@ -1,15 +1,142 @@
-import telebot
+import streamlit as st
+import random
+import matplotlib.pyplot as plt
 
-TOKEN = '7345256465:AAFu25BED4bqvxStviXwk1FSvv6X4D4HcbI'
-bot = telebot.TeleBot(TOKEN)
+# ✅ Khóa truy cập
+KEY_HOP_LE = "NMTVIP"
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "🤖 Xin chào! Đây là bot AI Dự Đoán Tài/Xỉu.\nGửi /du_doan để bắt đầu!")
+def nhap_key():
+    st.title("🔐 Nhập Key để sử dụng")
+    key_input = st.text_input("Nhập key tại đây", type="password")
+    if key_input == KEY_HOP_LE:
+        return True
+    elif key_input:
+        st.error("❌ Key không hợp lệ!")
+    return False
 
-@bot.message_handler(commands=['du_doan'])
-def du_doan(message):
-    # Kết quả mẫu, bạn có thể tích hợp thuật toán AI sau
-    bot.send_message(message.chat.id, "🔮 Dự đoán: TÀI\n🎲 Xúc xắc: 5 - 4 - 6")
+def du_doan_xuc_xac(phien):
+    s = str(phien)
+    so1 = int(s[-3]) % 6 + 1 if len(s) >= 3 else 1
+    so2 = int(s[-2]) % 6 + 1 if len(s) >= 2 else 1
+    so3 = int(s[-1]) % 6 + 1 if len(s) >= 1 else 1
+    return [so1, so2, so3]
 
-bot.polling()
+# ✅ 8 AI
+def AI_A(p, h): return "Xỉu" if h.count("tài") > 2 else "Tài"
+def AI_B(p, h): return "Xỉu" if ",".join(h) == "tài,xỉu,tài,xỉu,tài" else "Tài"
+def AI_C(p, h=None): return "Tài" if p % 2 == 0 else "Xỉu"
+def AI_D(p, h): return "Xỉu" if h.count("tài") > h.count("xỉu") else "Tài"
+def AI_E(p, h): return "Tài" if sum(1 for i in range(1, len(h)) if h[i] != h[i-1]) >= 3 else "Xỉu"
+def AI_F(p, h): return "Xỉu" if h.count("tài") / len(h) > 0.5 else "Tài"
+def AI_G(p, h): return "Tài" if (p * 17 + len(h) * 31) % 2 == 0 else "Xỉu"
+def AI_H(p, h):
+    c = 0
+    for i in range(len(h)-1, 0, -1):
+        if h[i] == h[i-1]:
+            c += 1
+        else:
+            break
+    if c >= 2:
+        return "Xỉu" if h[-1] == "tài" else "Tài"
+    return "Tài" if p % 2 == 0 else "Xỉu"
+
+# ✅ 7 thuật toán mã phiên
+def taiXiu_CoBan(p):
+    so = du_doan_xuc_xac(p)
+    tong = sum(so)
+    return 'Tài' if tong >= 11 else 'Xỉu'
+
+def taiXiu_DoanDoChinhXac(p, do_chinh_xac=85):
+    kq = taiXiu_CoBan(p)
+    return kq if random.randint(0, 100) < do_chinh_xac else ('Xỉu' if kq == 'Tài' else 'Tài')
+
+def taiXiu_TongChia2(p):
+    tong = sum(int(c) for c in str(p))
+    return 'Tài' if tong % 2 == 0 else 'Xỉu'
+
+def taiXiu_Chia23(p):
+    so = int(str(p)[-4:])
+    tong = so % 23
+    return 'Tài' if tong >= 11 else 'Xỉu'
+
+def taiXiu_ViTriChanLe(p):
+    s = [int(c) for c in str(p)]
+    chan = sum(s[i] for i in range(0, len(s), 2))
+    le = sum(s[i] for i in range(1, len(s), 2))
+    return 'Tài' if abs(chan - le) % 2 == 0 else 'Xỉu'
+
+def taiXiu_Mix(p):
+    s = str(p)
+    tong = sum(int(s[i]) for i in [0,1,2,-1,-2,-3] if i < len(s))
+    return 'Tài' if tong % 18 >= 10 else 'Xỉu'
+
+def taiXiu_DaoMaHoa(p):
+    s = str(p)[::-1]
+    sum_val = sum(int(c)*(i+1) for i, c in enumerate(s))
+    return 'Tài' if sum_val % 18 >= 10 else 'Xỉu'
+
+def main_tool():
+    st.title("🔮 Dự đoán Tài/Xỉu + Xúc Xắc AI")
+    phien = st.number_input("Nhập mã phiên", value=15021)
+    soPhien = st.number_input("Số phiên muốn dự đoán", min_value=1, max_value=100, value=10)
+
+    lichsu = []
+    cols = st.columns(5)
+    for i in range(5):
+        with cols[i]:
+            kq = st.selectbox(f"KQ {i+1}", ["Tài", "Xỉu"])
+            lichsu.append(kq.lower())
+
+    if st.button("Dự đoán"):
+        tai = xiu = 0
+        results = []
+        data_array = []
+        for _ in range(soPhien):
+            ai_list = [
+                AI_A(phien, lichsu),
+                AI_B(phien, lichsu),
+                AI_C(phien),
+                AI_D(phien, lichsu),
+                AI_E(phien, lichsu),
+                AI_F(phien, lichsu),
+                AI_G(phien, lichsu),
+                AI_H(phien, lichsu)
+            ]
+            code_list = [
+                taiXiu_CoBan(phien),
+                taiXiu_DoanDoChinhXac(phien),
+                taiXiu_TongChia2(phien),
+                taiXiu_Chia23(phien),
+                taiXiu_ViTriChanLe(phien),
+                taiXiu_Mix(phien),
+                taiXiu_DaoMaHoa(phien)
+            ]
+
+            count = {"Tài": 0, "Xỉu": 0}
+            for kq in ai_list + code_list:
+                count[kq] += 1
+
+            final = "Tài" if count["Tài"] > count["Xỉu"] else "Xỉu"
+            dices = du_doan_xuc_xac(phien)
+            tong = sum(dices)
+            results.append(f"Phiên {phien} → 🎲 {dices} = {tong} ⇒ ✅ {final}")
+            if final == "Tài": tai += 1
+            else: xiu += 1
+
+            data_array.append(final.lower())
+            lichsu.append(final.lower())
+            lichsu.pop(0)
+            phien += 1
+
+        st.success(f"📊 Tổng kết: {tai} Tài, {xiu} Xỉu")
+        st.text("\n".join(results))
+
+        # Biểu đồ
+        fig, ax = plt.subplots()
+        ax.bar(["Tài", "Xỉu"], [data_array.count("tài"), data_array.count("xỉu")], color=["green", "blue"])
+        st.pyplot(fig)
+
+# ✅ Chạy ứng dụng
+if __name__ == "__main__":
+    if nhap_key():
+        main_tool()
