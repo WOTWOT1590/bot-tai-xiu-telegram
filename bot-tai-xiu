@@ -1,0 +1,15 @@
+import telebot
+
+TOKEN = '7345256465:AAFu25BED4bqvxStviXwk1FSvv6X4D4HcbI'
+bot = telebot.TeleBot(TOKEN)
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "🤖 Xin chào! Đây là bot AI Dự Đoán Tài/Xỉu.\nGửi /du_doan để bắt đầu!")
+
+@bot.message_handler(commands=['du_doan'])
+def du_doan(message):
+    # Kết quả mẫu, bạn có thể tích hợp thuật toán AI sau
+    bot.send_message(message.chat.id, "🔮 Dự đoán: TÀI\n🎲 Xúc xắc: 5 - 4 - 6")
+
+bot.polling()
